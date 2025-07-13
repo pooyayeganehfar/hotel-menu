@@ -1,12 +1,24 @@
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { cookies } from 'next/headers';
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
-    const id = Number(params.id);
+    const cookiesList = await cookies();
+    const adminToken = cookiesList.get('admin_token');
+    
+    if (!adminToken?.value) {
+      return NextResponse.json(
+        { error: 'دسترسی غیر مجاز' },
+        { status: 401 }
+      );
+    }
+
+    // استخراج id از URL
+    const pathname = request.nextUrl.pathname;
+    const id = Number(pathname.split('/').pop());
+    
     const data = await request.json();
 
     const food = await prisma.food.update({
@@ -23,7 +35,8 @@ export async function PUT(
     });
 
     return NextResponse.json(food);
-  } catch (error) {
+  } catch (err) {
+    console.error('Error updating food:', err);
     return NextResponse.json(
       { error: 'خطا در به‌روزرسانی غذا' },
       { status: 500 }
@@ -31,19 +44,54 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    const id = Number(params.id);
+    // بررسی توکن احراز هویت
+    const cookiesList = await cookies();
+    const adminToken = cookiesList.get('admin_token');
+    
+    if (!adminToken?.value) {
+      return NextResponse.json(
+        { error: 'دسترسی غیر مجاز' },
+        { status: 401 }
+      );
+    }
 
+    // استخراج id از URL
+    const pathname = request.nextUrl.pathname;
+    const id = Number(pathname.split('/').pop());
+    
+    if (isNaN(id)) {
+      return NextResponse.json(
+        { error: 'شناسه نامعتبر است' },
+        { status: 400 }
+      );
+    }
+
+    // بررسی وجود غذا
+    const food = await prisma.food.findUnique({
+      where: { id }
+    });
+
+    if (!food) {
+      return NextResponse.json(
+        { error: 'غذای مورد نظر یافت نشد' },
+        { status: 404 }
+      );
+    }
+
+    // حذف غذا
     await prisma.food.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'غذا با موفقیت حذف شد'
+    });
+
   } catch (error) {
+    console.error('Error deleting food:', error);
     return NextResponse.json(
       { error: 'خطا در حذف غذا' },
       { status: 500 }

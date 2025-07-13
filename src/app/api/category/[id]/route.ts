@@ -1,24 +1,24 @@
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     // بررسی توکن احراز هویت
-    const cookieStore = await cookies();
-    const token = cookieStore.get('admin_token');
+    const cookiesList = await cookies();
+    const adminToken = cookiesList.get('admin_token');
     
-    if (!token) {
+    if (!adminToken?.value) {
       return NextResponse.json(
         { error: 'دسترسی غیر مجاز' },
         { status: 401 }
       );
     }
 
-    const id = Number(params.id);
+    // استخراج id از URL
+    const pathname = request.nextUrl.pathname;
+    const id = Number(pathname.split('/').pop());
     
     if (isNaN(id)) {
       return NextResponse.json(
