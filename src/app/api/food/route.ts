@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET: دریافت همه غذاها با دسته‌بندی
 export async function GET() {
   const foods = await prisma.food.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { id: 'desc' },
     include: { category: true },
   });
   return NextResponse.json(foods);
