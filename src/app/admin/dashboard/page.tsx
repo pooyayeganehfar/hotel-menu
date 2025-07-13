@@ -117,28 +117,47 @@ export default function AdminDashboard() {
     }
 
     setLoading(true);
+    setError(null);
 
-    const res = await fetch('/api/food', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      console.log('Sending food data:', {
         name,
         price: Number(price),
         image,
         categoryId: Number(categoryId)
-      }),
-    });
+      });
 
-    if (res.ok) {
-      const newFood = await res.json();
-      setFoods([newFood, ...foods]);
+      const res = await fetch('/api/food', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          price: Number(price),
+          image,
+          categoryId: Number(categoryId)
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'خطا در ایجاد غذا');
+      }
+
+      setFoods([data, ...foods]);
       setName('');
       setPrice('');
       setImage('');
       setCategoryId('');
+      setError(null);
+      alert('غذا با موفقیت اضافه شد');
+    } catch (err) {
+      console.error('Error creating food:', err);
+      setError(err instanceof Error ? err.message : 'خطا در ایجاد غذا');
+      alert(err instanceof Error ? err.message : 'خطا در ایجاد غذا');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const addCategory = async (e: React.FormEvent) => {
