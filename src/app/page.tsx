@@ -10,7 +10,6 @@ type FoodWithCategory = {
   name: string;
   price: number;
   image: string;
-  createdAt: Date;
   category?: { id: number; name: string } | null;
 };
 
