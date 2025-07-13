@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { BiSearch } from 'react-icons/bi';
 import { IoClose } from 'react-icons/io5';
-import { prisma } from '@/lib/prisma';
 
 type FoodWithCategory = {
   id: number;
@@ -105,15 +105,18 @@ export default function HomePage() {
                   >
                     <div className="w-32 sm:w-full h-24 sm:h-48 shrink-0 relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <img 
-                        src={food.image} 
-                        alt={food.name}
-                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/placeholder-food.jpg';
-                        }}
-                      />
+                      <div className="relative w-full h-full">
+                        <Image 
+                          src={food.image} 
+                          alt={food.name}
+                          fill
+                          className="object-cover transform group-hover:scale-110 transition-transform duration-500"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder-food.jpg';
+                          }}
+                        />
+                      </div>
                     </div>
                     <div className="flex-1 p-4 flex flex-col justify-center sm:block relative">
                       <div className="space-y-2">

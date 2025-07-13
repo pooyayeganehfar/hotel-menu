@@ -474,23 +474,17 @@ export default function AdminDashboard() {
                       >
                         <div className="relative h-52 overflow-hidden">
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10" />
-                          <div className="relative w-full h-full bg-zinc-800/80">
-                            {food.image && (
-                              <img
-                                src={food.image}
-                                alt={food.name}
-                                className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-food.jpg';
-                                }}
-                              />
-                            )}
-                            {!food.image && (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-600 text-4xl">
-                                <BiDish className="w-16 h-16" />
-                              </div>
-                            )}
+                          <div className="relative w-full h-full">
+                            <Image 
+                              src={food.image} 
+                              alt={food.name}
+                              fill
+                              className="object-cover transform group-hover:scale-110 transition-transform duration-500"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder-food.jpg';
+                              }}
+                            />
                           </div>
                           <div className="absolute bottom-3 right-3 z-20 flex flex-row-reverse items-center gap-2">
                             <span className="px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-xl text-sm font-medium border border-white/10">
