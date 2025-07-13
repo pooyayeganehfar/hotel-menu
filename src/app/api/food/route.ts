@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, connectDB, disconnectDB } from '@/lib/prisma';
 
 
 // GET: دریافت همه غذاها با دسته‌بندی
 export async function GET() {
   try {
-    await prisma.$connect();
-    console.log('Connected to database');
+    await connectDB();
+    console.log('Connected to database for GET request');
     
     const foods = await prisma.food.findMany({
       include: { category: true },
@@ -22,15 +22,15 @@ export async function GET() {
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    await disconnectDB();
   }
 }
 
 
-// POST: افزودن غذا جدید با دسته‌بندی
+// POST: افزودن غذای جدید
 export async function POST(request: Request) {
   try {
-    await prisma.$connect();
+    await connectDB();
     console.log('Connected to database for POST request');
     
     const body = await request.json();
@@ -43,14 +43,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
     }
 
-    const newFood = await prisma.food.create({
-      data: {
-        name,
-        price: Number(price),
-        image,
-        categoryId: Number(categoryId),
-      },
-      include: { category: true },
+    // تبدیل قیمت و شناسه دسته‌بندی به عدد
+    const priceNum = Number(price);
+    const categoryIdNum = Number(categoryId);
+
+    if (isNaN(priceNum)) {
+      return NextResponse.json({ error: 'قیمت باید عدد باشد' }, { status: 400 });
+    }
+
+    if (isNaN(categoryIdNum)) {
+      return NextResponse.json({ error: 'شناسه دسته‌بندی باید عدد باشد' }, { status: 400 });
+    }
+
+    // بررسی وجود دسته‌بندی
+    const category = await prisma.category.findUnique({
+      where: { id: categoryIdNum }
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: 'دسته‌بندی مورد نظر یافت نشد' }, { status: 404 });
+    }
+
+    // ایجاد غذای جدید با تراکنش
+    const newFood = await prisma.$transaction(async (tx) => {
+      return await tx.food.create({
+        data: {
+          name,
+          price: priceNum,
+          image,
+          categoryId: categoryIdNum,
+        },
+        include: { category: true },
+      });
     });
 
     console.log('Created new food:', newFood);
@@ -62,6 +86,6 @@ export async function POST(request: Request) {
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
+    await disconnectDB();
   }
 }

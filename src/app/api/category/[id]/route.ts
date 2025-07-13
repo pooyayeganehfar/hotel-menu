@@ -1,13 +1,13 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { prisma, connectDB, disconnectDB } from '@/lib/prisma';
 
 export async function DELETE(request: NextRequest) {
   try {
+    await connectDB();
+    
     // بررسی توکن احراز هویت
-    const cookiesList = await cookies();
-    const adminToken = cookiesList.get('admin_token');
+    const adminToken = request.cookies.get('admin_token');
     
     if (!adminToken?.value) {
       return NextResponse.json(
@@ -27,44 +27,45 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // بررسی وجود دسته‌بندی
-    const category = await prisma.category.findUnique({
-      where: { id },
-      include: {
-        foods: true
-      }
-    });
+    console.log('Attempting to delete category:', id);
 
-    if (!category) {
-      return NextResponse.json(
-        { error: 'دسته‌بندی مورد نظر یافت نشد' },
-        { status: 404 }
-      );
-    }
-
-    // اگر غذایی در این دسته‌بندی وجود دارد، categoryId آنها را null کنیم
-    if (category.foods.length > 0) {
-      await prisma.food.updateMany({
-        where: { categoryId: id },
-        data: { categoryId: null }
+    // حذف دسته‌بندی با تراکنش
+    const result = await prisma.$transaction(async (tx) => {
+      // بررسی وجود دسته‌بندی
+      const category = await tx.category.findUnique({
+        where: { id },
+        include: { foods: true }
       });
-    }
 
-    // حذف دسته‌بندی
-    await prisma.category.delete({
-      where: { id },
+      if (!category) {
+        throw new Error('دسته‌بندی مورد نظر یافت نشد');
+      }
+
+      // آپدیت غذاهای مرتبط
+      if (category.foods.length > 0) {
+        await tx.food.updateMany({
+          where: { categoryId: id },
+          data: { categoryId: null }
+        });
+      }
+
+      // حذف دسته‌بندی
+      return await tx.category.delete({
+        where: { id }
+      });
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'دسته‌بندی با موفقیت حذف شد'
-    });
+    console.log('Successfully deleted category:', result);
+    return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Error deleting category:', error);
+    console.error('Error in DELETE /api/category/[id]:', error);
+    const status = error instanceof Error && error.message === 'دسته‌بندی مورد نظر یافت نشد' ? 404 : 500;
     return NextResponse.json(
-      { error: 'خطا در حذف دسته‌بندی' },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : 'خطا در حذف دسته‌بندی' },
+      { status }
     );
+  } finally {
+    await disconnectDB();
   }
 }
