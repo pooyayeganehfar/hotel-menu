@@ -21,5 +21,4 @@ model Food {
   image      String?
   category   Category? @relation(fields: [categoryId], references: [id])
   categoryId Int?
-  createdAt  DateTime  @default(now())
 }
